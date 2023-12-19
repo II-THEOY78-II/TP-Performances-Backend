@@ -9,6 +9,7 @@ use App\Entities\HotelEntity;
 use App\Entities\RoomEntity;
 use App\Services\Room\RoomService;
 use App\Common\Timers;
+use App\Common\Database;
 use Exception;
 use PDO;
 
@@ -33,9 +34,10 @@ class UnoptimizedHotelService extends AbstractHotelService {
    * @return PDO
    * @noinspection PhpUnnecessaryLocalVariableInspection
    */
+  
+  
   protected function getDB () : PDO {
-    $pdo = new PDO( "mysql:host=db;dbname=tp;charset=utf8mb4", "root", "root" );
-    return $pdo;
+    return Database::getInstance()->getPDO();
   }
   
   
