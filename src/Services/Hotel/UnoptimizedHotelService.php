@@ -53,19 +53,17 @@ class UnoptimizedHotelService extends AbstractHotelService {
     $timer = Timers::getInstance();
     $timerId = $timer->startTimer('TestgetMeta');
     $db = $this->getDB();
-    $stmt = $db->prepare( "SELECT * FROM wp_usermeta" );
-    $stmt->execute();
-    
-    $result = $stmt->fetchAll( PDO::FETCH_ASSOC );
-    $output = null;
-    foreach ( $result as $row ) {
-      if ( $row['user_id'] === $userId && $row['meta_key'] === $key )
-        $output = $row['meta_value'];
-    }
+
+    $stmt = $db->prepare ('SELECT meta_value FROM wp_usermeta WHERE user_id = ? AND meta_key = ?');
+    $stmt->execute(array($userId, $key));
+
+    $result = $stmt -> fetch();
+
     $timer->endTimer('TestgetMeta', $timerId);
-    return $output;
+    return $result['meta_value'];
   }
   
+
   
   /**
    * Récupère toutes les meta données de l'instance donnée
@@ -108,19 +106,15 @@ class UnoptimizedHotelService extends AbstractHotelService {
     $timer = Timers::getInstance();
     $timerId = $timer->startTimer('TestgetReviews');
     // Récupère tous les avis d'un hotel
-    $stmt = $this->getDB()->prepare( "SELECT * FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'" );
+    $stmt = $this->getDB()->prepare( "SELECT ROUND(AVG(meta_value)) AS rating, count(meta_value) AS count FROM wp_posts, wp_postmeta WHERE wp_posts.post_author = :hotelId AND wp_posts.ID = wp_postmeta.post_id AND meta_key = 'rating' AND post_type = 'review'" );
     $stmt->execute( [ 'hotelId' => $hotel->getId() ] );
-    $reviews = $stmt->fetchAll( PDO::FETCH_ASSOC );
-    
-    // Sur les lignes, ne garde que la note de l'avis
-    $reviews = array_map( function ( $review ) {
-      return intval( $review['meta_value'] );
-    }, $reviews );
+    $reviews = $stmt->fetch( PDO::FETCH_ASSOC );
     
     $output = [
-      'rating' => round( array_sum( $reviews ) / count( $reviews ) ),
-      'count' => count( $reviews ),
+      'rating' => $reviews['rating'],
+      'count' => $reviews['count']
     ];
+
     $timer->endTimer('TestgetReviews', $timerId);
     return $output;
   }
@@ -148,7 +142,7 @@ class UnoptimizedHotelService extends AbstractHotelService {
     $timer = Timers::getInstance();
     $timerId = $timer->startTimer('TestgetCheapestRoom');
     // On charge toutes les chambres de l'hôtel
-    $stmt = $this->getDB()->prepare( "SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room'" );
+    $stmt = $this->getDB()->prepare( "SELECT  FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room'" );
     $stmt->execute( [ 'hotelId' => $hotel->getId() ] );
     
     /**
